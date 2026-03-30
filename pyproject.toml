@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sopdf"
+dynamic = ["version"]
+description = "A high-performance PDF processing library with a permissive license."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+keywords = ["pdf", "pypdfium2", "pikepdf", "document", "render", "text-extraction"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Text Processing",
+]
+dependencies = [
+    "pypdfium2>=4.0",
+    "pikepdf>=8.0",
+    "Pillow>=9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/SoMarkAI/SoPDF"
+Repository = "https://github.com/SoMarkAI/SoPDF"
+"Bug Tracker" = "https://github.com/SoMarkAI/SoPDF/issues"
+
+[tool.hatch.version]
+path = "sopdf/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--tb=short"
+
+[tool.coverage.run]
+source = ["sopdf"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
