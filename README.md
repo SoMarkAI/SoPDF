@@ -12,6 +12,8 @@
 pip install sopdf
 ```
 
+English | [中文](README_CN.md)
+
 </div>
 
 ---
