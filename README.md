@@ -171,3 +171,6 @@ with sopdf.open("corrupted.pdf") as doc:
 Apache 2.0 — see [LICENSE](LICENSE).
 
 SoPDF is free to use in personal projects, commercial products, and open-source libraries. No licensing fees, no attribution requirements beyond the standard Apache 2.0 notice.
+
+## WeChat Group
+<img src="./docs/assets/wechat.png" width="100">

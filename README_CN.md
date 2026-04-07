@@ -184,3 +184,6 @@ with sopdf.open("corrupted.pdf") as doc:
 Apache 2.0——详见 [LICENSE](LICENSE)。
 
 SoPDF 可自由用于个人项目、商业产品和开源库。无需许可费，除标准 Apache 2.0 声明外无需任何署名要求。
+
+## 微信交流群
+<img src="./docs/assets/wechat.png" width="100">
