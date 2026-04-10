@@ -20,13 +20,23 @@ English | [中文](README_CN.md)
 
 ## Why SoPDF?
 
-For developers, a feature-rich open-source PDF processing library often comes with a license that is not friendly to the open-source ecosystem. If you release a product under a permissive license or contribute to a library that others can freely embed, the license can become a real obstacle. Yet high performance and comprehensive functionality are indispensable requirements for PDF processing.
+**1. 🚀 High Performance**
 
-**SoPDF was built to close that gap.**
+With parallel processing and other optimizations, SoPDF significantly outperforms alternatives: rendering up to **1.56x faster**, plain text extraction **2.7x faster**, and full-text search **3x faster** — while maintaining **99% word-level accuracy consistency** with PyMuPDF. See the [Performance Benchmark](#performance-benchmark) section, or run it yourself.
 
-Built on [`pypdfium2`](https://github.com/pypdfium2-team/pypdfium2) (Google's PDFium, for rendering & text) and [`pikepdf`](https://github.com/pikepdf/pikepdf) (libqpdf, for structure & writing), SoPDF delivers the same core capabilities under the **Apache 2.0 License** — no strings attached, no license audits, no friction. Embed it, ship it, fork it. It's yours.
+**2. ✨ Feature-Rich**
 
-Beyond its license, SoPDF is also **genuinely faster** than the incumbent alternative. Rendering is up to **1.56× faster**, plain-text extraction **2.7× faster**, and full-text search **3× faster** than PyMuPDF — all with 99% word-level accuracy parity. See [Benchmarks](#benchmarks) to verify the numbers yourself.
+Built on [`pypdfium2`](https://github.com/pypdfium2-team/pypdfium2) (Google PDFium, for rendering and text) and [`pikepdf`](https://github.com/pikepdf/pikepdf) (libqpdf, for structure and writing). SoPDF covers the entire workflow from rendering and text extraction to structural editing.
+
+**3. 🎯 Clean API**
+
+Intuition as documentation. You would have designed it the same way.
+
+**4. 🔓 Permissive License**
+
+In PDF processing, feature-rich + open source often comes with a license unfriendly to the open-source ecosystem. But SoPDF delivers equivalent core capabilities under the **Apache 2.0 License** — no strings attached, no license audit, zero friction. Embed it, ship it, fork it. It's yours.
+
+> If you find SoPDF helpful, please consider giving it a ⭐ Star — it really means a lot to us. Every star fuels our motivation to keep improving.
 
 ---
 
