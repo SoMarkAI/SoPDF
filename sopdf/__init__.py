@@ -15,7 +15,7 @@ Quick start::
         text = page.get_text()
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from ._document import Document
 from ._exceptions import FileDataError, PDFError, PageError, PasswordError
