@@ -22,6 +22,9 @@
 - [Data Types](#data-types)
   - [Rect](#rect)
   - [TextBlock](#textblock)
+  - [Metadata](#metadata)
+  - [OutlineItem](#outlineitem)
+  - [Outline](#outline)
 - [Exceptions](#exceptions)
 
 ---
@@ -217,22 +220,38 @@ The total number of pages in the document (read-only).
 #### `metadata`
 
 ```python
-doc.metadata -> dict
+doc.metadata -> Metadata
 ```
 
-Document metadata dictionary (read-only). Keys are lowercase strings. Possible fields:
+Document metadata — readable and writable via a [`Metadata`](#metadata) proxy object.
 
-| Key | Type | Description |
-|---|---|---|
-| `"title"` | `str` | Document title. |
-| `"author"` | `str` | Author name. |
-| `"subject"` | `str` | Document subject. |
-| `"creator"` | `str` | Application that created the document. |
-| `"producer"` | `str` | Tool that produced the PDF. |
-| `"creation_date"` | `str` | Creation date. |
-| `"mod_date"` | `str` | Last modification date. |
+```python
+# Read
+print(doc.metadata.title)
+print(doc.metadata.creation_datetime)  # Python datetime
 
-Some fields may be absent depending on the document.
+# Write (lazily initialises pikepdf, marks document dirty)
+doc.metadata.title  = "Annual Report 2025"
+doc.metadata.author = "Kevin Qiu"
+doc.save("updated.pdf")
+```
+
+---
+
+#### `outline`
+
+```python
+doc.outline -> Outline
+```
+
+Document outline (table of contents) as an [`Outline`](#outline) tree. Returns an object with `len == 0` when the document has no bookmarks. Uses pypdfium2 — no pikepdf cost for read-only access.
+
+```python
+for item in doc.outline.items:
+    print(f"[p{item.page + 1}] {item.title}")
+
+flat = doc.outline.to_list()  # PyMuPDF-compatible flat list
+```
 
 ---
 
@@ -839,6 +858,130 @@ for block in blocks:
     print(block.text)
     print(block.rect.width, block.rect.height)
     print(block.to_dict())
+```
+
+---
+
+### Metadata
+
+Read/write proxy for the PDF Document Info dictionary. Obtained via `doc.metadata` — never constructed directly.
+
+**Read path** (zero pikepdf cost): each property calls `pypdfium2.get_metadata_dict()` after auto-syncing.
+
+**Write path** (lazy pikepdf init): each setter calls `_ensure_pike()`, writes to `pike_doc.docinfo`, and marks the document dirty. The next read auto-syncs.
+
+**Properties**
+
+| Property | Type | Description |
+|---|---|---|
+| `title` | `str \| None` | Document title (`/Title`). Read/write. |
+| `author` | `str \| None` | Author name (`/Author`). Read/write. |
+| `subject` | `str \| None` | Document subject (`/Subject`). Read/write. |
+| `keywords` | `str \| None` | Search keywords (`/Keywords`). Read/write. |
+| `creator` | `str \| None` | Authoring tool that created the source document (`/Creator`). Read/write. |
+| `producer` | `str \| None` | Tool that produced the PDF (`/Producer`). Read/write. |
+| `creation_date` | `str \| None` | Raw PDF creation date string (`/CreationDate`). Read/write. |
+| `mod_date` | `str \| None` | Raw PDF modification date string (`/ModDate`). Read/write. |
+| `creation_datetime` | `datetime \| None` | `creation_date` parsed as a Python `datetime`. Read-only. Returns `None` if missing or unparseable. |
+| `mod_datetime` | `datetime \| None` | `mod_date` parsed as a Python `datetime`. Read-only. Returns `None` if missing or unparseable. |
+
+**Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `to_dict()` | `dict[str, str \| None]` | All fields as a dict with lowercase keys. Matches the old `doc.metadata` dict format. |
+| `__getitem__(key)` | `str \| None` | `meta["title"]` — backward-compatible dict-style access. |
+
+**PDF date string format:** `D:YYYYMMDDHHmmSSOHH'mm'` (prefix `D:` and timezone optional).
+
+**Examples**
+
+```python
+with sopdf.open("report.pdf") as doc:
+    meta = doc.metadata
+
+    # Read individual fields
+    print(meta.title)
+    print(meta.creation_datetime)   # datetime(2024, 1, 1, 12, 0, tzinfo=...)
+
+    # Write
+    meta.title  = "New Title"
+    meta.author = "Kevin Qiu"
+    doc.save("updated.pdf")
+
+    # Dict-style read (backward compat)
+    d = meta.to_dict()
+    print(d["title"])
+    print(meta["author"])
+```
+
+---
+
+### OutlineItem
+
+An immutable bookmark node in the document outline.
+
+```python
+@dataclass(frozen=True)
+class OutlineItem:
+    title:    str
+    page:     int                          # 0-based; -1 = no destination page
+    level:    int                          # 0 = top-level
+    children: tuple[OutlineItem, ...] = ()
+```
+
+**Attributes**
+
+| Attribute | Type | Description |
+|---|---|---|
+| `title` | `str` | Bookmark label as displayed in the reader TOC panel. |
+| `page` | `int` | 0-based target page index; `-1` when the item has no destination. |
+| `level` | `int` | Nesting depth; `0` = top-level item. |
+| `children` | `tuple[OutlineItem, ...]` | Nested child items (frozen tuple). |
+
+**Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `to_dict()` | `dict` | Serialize to a plain dict (recursive). |
+
+---
+
+### Outline
+
+Read-only bookmark tree manager. Obtained via `doc.outline` — never constructed directly.
+
+The tree is built once on first access using pypdfium2's TOC data — no pikepdf initialisation needed.
+
+**Properties / Methods**
+
+| Member | Returns | Description |
+|---|---|---|
+| `items` | `list[OutlineItem]` | Top-level outline items (each may have nested `children`). |
+| `to_list()` | `list[dict]` | Flat DFS traversal. Each entry: `{"level": int, "title": str, "page": int}`. Compatible with PyMuPDF `get_toc()` output. |
+| `len(outline)` | `int` | Total number of nodes across all nesting levels. |
+| `iter(outline)` | — | Iterate over top-level items. |
+| `bool(outline)` | `bool` | `True` when the document has at least one outline item. |
+
+**Examples**
+
+```python
+with sopdf.open("textbook.pdf") as doc:
+    outline = doc.outline
+    print(outline)          # Outline(top_level=2, total=4)
+    print(bool(outline))    # True
+
+    # Recursive tree traversal
+    def print_tree(items, indent=0):
+        for item in items:
+            print("  " * indent + f"[p{item.page + 1}] {item.title}")
+            print_tree(item.children, indent + 1)
+
+    print_tree(outline.items)
+
+    # Flat list (PyMuPDF-compatible)
+    for row in outline.to_list():
+        print(f"{'  ' * row['level']}{row['title']}  →  p{row['page'] + 1}")
 ```
 
 ---

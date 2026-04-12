@@ -153,6 +153,16 @@ with sopdf.open("document.pdf") as doc:
     # --- 旋转 ---
     doc[0].rotation = 90
 
+    # --- 元数据 ---
+    print(doc.metadata.title)                  # 读取
+    doc.metadata.title = "更新后的标题"         # 写入
+    print(doc.metadata.creation_datetime)      # 解析后的 Python datetime
+
+    # --- 大纲（目录）---
+    for item in doc.outline.items:
+        print(f"[p{item.page + 1}] {item.title}")
+    flat = doc.outline.to_list()               # 与 PyMuPDF 兼容的扁平列表
+
 # --- 加密 PDF ---
 with sopdf.open("protected.pdf", password="hunter2") as doc:
     doc.save("unlocked.pdf")                      # 保存时自动去除加密
@@ -186,6 +196,8 @@ with sopdf.open("corrupted.pdf") as doc:
 | 旋转页面 | [08_rotate](examples/08_rotate) |
 | 打开并保存加密 PDF | [09_decrypt](examples/09_decrypt) |
 | 自动修复损坏的 PDF | [10_repair](examples/10_repair) |
+| 读取与写入文档元数据 | [11_metadata](examples/11_metadata) |
+| 读取文档大纲（目录） | [12_outline](examples/12_outline) |
 
 ---
 

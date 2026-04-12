@@ -41,6 +41,8 @@ class Document:
         self._stream = _stream
         self._dirty = False
         self._closed = False
+        self._metadata_obj = None         # Metadata — lazy on first access
+        self._outline_obj = None          # Outline  — lazy on first access
 
     # ------------------------------------------------------------------
     # Factory (called by sopdf.open)
@@ -131,13 +133,43 @@ class Document:
         return len(self._pdfium_doc)
 
     @property
-    def metadata(self) -> dict:
-        """Document metadata dict (keys lowercase).
+    def metadata(self) -> "Metadata":
+        """Document metadata — readable and writable via a :class:`~sopdf.Metadata` proxy.
 
-        Sourced from pypdfium2 for zero-cost reads.
+        Reads are served by pypdfium2 (zero pikepdf cost).
+        Writes lazily initialise pikepdf and mark the document dirty.
+
+        Examples
+        --------
+        >>> doc.metadata.title
+        'Annual Report 2024'
+        >>> doc.metadata.author = 'Kevin Qiu'
+        >>> doc.save('updated.pdf')
         """
         self._check_open()
-        return {k.lower(): v for k, v in self._pdfium_doc.get_metadata_dict().items()}
+        if self._metadata_obj is None:
+            from ._metadata import Metadata
+            self._metadata_obj = Metadata(self)
+        return self._metadata_obj
+
+    @property
+    def outline(self) -> "Outline":
+        """Document outline (table of contents) as a :class:`~sopdf.Outline` tree.
+
+        Returns an empty outline (``len == 0``) when the document has no bookmarks.
+        Uses pypdfium2 for zero-cost reads — no pikepdf initialisation required.
+
+        Examples
+        --------
+        >>> for item in doc.outline.items:
+        ...     print(f"[p{item.page + 1}] {item.title}")
+        >>> flat = doc.outline.to_list()  # PyMuPDF-compatible flat list
+        """
+        self._check_open()
+        if self._outline_obj is None:
+            from ._outline import Outline
+            self._outline_obj = Outline(self)
+        return self._outline_obj
 
     @property
     def is_encrypted(self) -> bool:

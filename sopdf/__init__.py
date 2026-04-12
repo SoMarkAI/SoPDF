@@ -20,6 +20,8 @@ __version__ = "0.1.0"
 from ._document import Document
 from ._exceptions import FileDataError, PDFError, PageError, PasswordError
 from ._merge import merge
+from ._metadata import Metadata
+from ._outline import Outline, OutlineItem
 from ._page import Page
 from ._rect import Rect
 from ._render import render_pages, render_pages_to_files
@@ -65,6 +67,9 @@ __all__ = [
     "render_pages_to_files",
     # classes
     "Document",
+    "Metadata",
+    "Outline",
+    "OutlineItem",
     "Page",
     "Rect",
     "TextBlock",

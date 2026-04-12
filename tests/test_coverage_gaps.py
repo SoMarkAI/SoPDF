@@ -127,3 +127,27 @@ class TestDocumentClose:
         doc = sopdf.open(str(simple_pdf))
         doc.close()
         doc.close()  # second close must not raise
+
+
+# ---------------------------------------------------------------------------
+# save(linearize=True) branch and _PageList.__getitem__ / __repr__
+# ---------------------------------------------------------------------------
+
+class TestSaveLinearize:
+    def test_save_with_linearize(self, simple_pdf, tmp_path):
+        out = tmp_path / "linear.pdf"
+        with sopdf.open(str(simple_pdf)) as doc:
+            doc.save(out, linearize=True)
+        assert out.exists()
+
+
+class TestPageListSubscriptAndRepr:
+    def test_pagelist_getitem(self, simple_pdf):
+        with sopdf.open(str(simple_pdf)) as doc:
+            page = doc.pages[0]      # exercises _PageList.__getitem__
+            assert page.number == 0
+
+    def test_pagelist_repr(self, simple_pdf):
+        with sopdf.open(str(simple_pdf)) as doc:
+            r = repr(doc.pages)      # exercises _PageList.__repr__
+            assert "PageList" in r

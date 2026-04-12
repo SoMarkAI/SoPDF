@@ -22,6 +22,9 @@
 - [数据类型](#数据类型)
   - [Rect](#rect)
   - [TextBlock](#textblock)
+  - [Metadata](#metadata)
+  - [OutlineItem](#outlineitem)
+  - [Outline](#outline)
 - [异常](#异常)
 
 ---
@@ -217,22 +220,38 @@ doc.page_count -> int
 #### `metadata`
 
 ```python
-doc.metadata -> dict
+doc.metadata -> Metadata
 ```
 
-文档元数据字典（只读）。键名均为小写字符串，可能包含以下字段：
+文档元数据，通过 [`Metadata`](#metadata) 代理对象读写。
 
-| 键 | 类型 | 说明 |
-|---|---|---|
-| `"title"` | `str` | 文档标题 |
-| `"author"` | `str` | 作者 |
-| `"subject"` | `str` | 主题 |
-| `"creator"` | `str` | 创建应用程序 |
-| `"producer"` | `str` | 生成 PDF 的工具 |
-| `"creation_date"` | `str` | 创建日期 |
-| `"mod_date"` | `str` | 最后修改日期 |
+```python
+# 读取
+print(doc.metadata.title)
+print(doc.metadata.creation_datetime)  # Python datetime 对象
 
-某些字段在特定文档中可能不存在。
+# 写入（懒加载 pikepdf，标记文档为脏）
+doc.metadata.title  = "Annual Report 2025"
+doc.metadata.author = "Kevin Qiu"
+doc.save("updated.pdf")
+```
+
+---
+
+#### `outline`
+
+```python
+doc.outline -> Outline
+```
+
+文档大纲（目录），以 [`Outline`](#outline) 树对象返回。文档无书签时返回 `len == 0` 的空大纲。读取使用 pypdfium2，无 pikepdf 开销。
+
+```python
+for item in doc.outline.items:
+    print(f"[p{item.page + 1}] {item.title}")
+
+flat = doc.outline.to_list()  # 与 PyMuPDF get_toc() 格式兼容的扁平列表
+```
 
 ---
 
@@ -839,6 +858,130 @@ for block in blocks:
     print(block.text)
     print(block.rect.width, block.rect.height)
     print(block.to_dict())
+```
+
+---
+
+### Metadata
+
+PDF Document Info 字典的读/写代理。通过 `doc.metadata` 获取，不应直接构造。
+
+**读取路径**（零 pikepdf 开销）：每个属性调用 `pypdfium2.get_metadata_dict()` 并在自动同步后返回。
+
+**写入路径**（懒加载 pikepdf）：每个 setter 调用 `_ensure_pike()`，写入 `pike_doc.docinfo` 并将文档标记为脏，下次读取时自动同步。
+
+**属性**
+
+| 属性 | 类型 | 说明 |
+|---|---|---|
+| `title` | `str \| None` | 文档标题（`/Title`）。可读写。 |
+| `author` | `str \| None` | 作者姓名（`/Author`）。可读写。 |
+| `subject` | `str \| None` | 文档主题（`/Subject`）。可读写。 |
+| `keywords` | `str \| None` | 搜索关键词（`/Keywords`）。可读写。 |
+| `creator` | `str \| None` | 原始创作工具（`/Creator`，如 Word）。可读写。 |
+| `producer` | `str \| None` | 生成 PDF 的工具（`/Producer`）。可读写。 |
+| `creation_date` | `str \| None` | 原始 PDF 创建日期字符串（`/CreationDate`）。可读写。 |
+| `mod_date` | `str \| None` | 原始 PDF 修改日期字符串（`/ModDate`）。可读写。 |
+| `creation_datetime` | `datetime \| None` | `creation_date` 解析后的 Python `datetime`。只读。缺失或格式异常时返回 `None`。 |
+| `mod_datetime` | `datetime \| None` | `mod_date` 解析后的 Python `datetime`。只读。缺失或格式异常时返回 `None`。 |
+
+**方法**
+
+| 方法 | 返回值 | 说明 |
+|---|---|---|
+| `to_dict()` | `dict[str, str \| None]` | 以小写键名导出所有字段的字典，与旧版 `doc.metadata` 格式兼容。 |
+| `__getitem__(key)` | `str \| None` | `meta["title"]` — 向后兼容的字典风格访问。 |
+
+**PDF 日期格式：** `D:YYYYMMDDHHmmSSOHH'mm'`（前缀 `D:` 和时区均可选）。
+
+**示例**
+
+```python
+with sopdf.open("report.pdf") as doc:
+    meta = doc.metadata
+
+    # 读取字段
+    print(meta.title)
+    print(meta.creation_datetime)  # datetime(2024, 1, 1, 12, 0, tzinfo=...)
+
+    # 写入
+    meta.title  = "新标题"
+    meta.author = "Kevin Qiu"
+    doc.save("updated.pdf")
+
+    # 字典风格读取（向后兼容）
+    d = meta.to_dict()
+    print(d["title"])
+    print(meta["author"])
+```
+
+---
+
+### OutlineItem
+
+文档大纲中的单个书签节点（不可变）。
+
+```python
+@dataclass(frozen=True)
+class OutlineItem:
+    title:    str
+    page:     int                          # 0-based；-1 = 无目标页
+    level:    int                          # 0 = 顶层
+    children: tuple[OutlineItem, ...] = ()
+```
+
+**属性**
+
+| 属性 | 类型 | 说明 |
+|---|---|---|
+| `title` | `str` | 阅读器目录面板中显示的书签标签。 |
+| `page` | `int` | 0-based 目标页码；无目标页时为 `-1`。 |
+| `level` | `int` | 嵌套深度；`0` = 顶层项。 |
+| `children` | `tuple[OutlineItem, ...]` | 子节点（frozen tuple）。 |
+
+**方法**
+
+| 方法 | 返回值 | 说明 |
+|---|---|---|
+| `to_dict()` | `dict` | 递归序列化为普通字典。 |
+
+---
+
+### Outline
+
+只读大纲树管理器。通过 `doc.outline` 获取，不应直接构造。
+
+首次访问时一次性构建，使用 pypdfium2 的 TOC 数据——无需 pikepdf 初始化。
+
+**属性 / 方法**
+
+| 成员 | 返回值 | 说明 |
+|---|---|---|
+| `items` | `list[OutlineItem]` | 顶层大纲节点（每个可能含嵌套 `children`）。 |
+| `to_list()` | `list[dict]` | 深度优先扁平化列表。每项格式：`{"level": int, "title": str, "page": int}`。与 PyMuPDF `get_toc()` 输出格式兼容。 |
+| `len(outline)` | `int` | 所有层级节点的总数。 |
+| `iter(outline)` | — | 遍历顶层节点。 |
+| `bool(outline)` | `bool` | 文档有至少一个大纲节点时为 `True`。 |
+
+**示例**
+
+```python
+with sopdf.open("textbook.pdf") as doc:
+    outline = doc.outline
+    print(outline)          # Outline(top_level=2, total=4)
+    print(bool(outline))    # True
+
+    # 递归树遍历
+    def print_tree(items, indent=0):
+        for item in items:
+            print("  " * indent + f"[p{item.page + 1}] {item.title}")
+            print_tree(item.children, indent + 1)
+
+    print_tree(outline.items)
+
+    # 扁平列表（与 PyMuPDF 兼容）
+    for row in outline.to_list():
+        print(f"{'  ' * row['level']}{row['title']}  →  p{row['page'] + 1}")
 ```
 
 ---

@@ -79,12 +79,14 @@ class TestDocumentProperties:
         with sopdf.open(str(multipage_pdf)) as doc:
             assert doc.page_count == 5
 
-    def test_metadata_is_dict(self, simple_pdf):
+    def test_metadata_returns_metadata_object(self, simple_pdf):
         with sopdf.open(str(simple_pdf)) as doc:
             meta = doc.metadata
-            assert isinstance(meta, dict)
+            assert isinstance(meta, sopdf.Metadata)
+            # backward-compat: to_dict() has lowercase keys
+            d = meta.to_dict()
             for key in ("title", "author", "subject", "creator", "producer"):
-                assert key in meta
+                assert key in d
 
     def test_is_encrypted_false(self, simple_pdf):
         with sopdf.open(str(simple_pdf)) as doc:

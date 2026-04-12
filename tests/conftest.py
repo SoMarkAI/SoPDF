@@ -95,6 +95,42 @@ def _build_mixed(path: Path) -> None:
     pdf.save(str(path))
 
 
+def _build_metadata_pdf(path: Path) -> None:
+    """PDF with all Tier 1/2 Info dict fields populated."""
+    pdf = pikepdf.new()
+    _make_page(pdf, "Metadata test page.")
+    pdf.docinfo["/Title"]        = pikepdf.String("Test Title")
+    pdf.docinfo["/Author"]       = pikepdf.String("Test Author")
+    pdf.docinfo["/Subject"]      = pikepdf.String("Test Subject")
+    pdf.docinfo["/Keywords"]     = pikepdf.String("test keyword")
+    pdf.docinfo["/Creator"]      = pikepdf.String("Test Creator")
+    pdf.docinfo["/Producer"]     = pikepdf.String("Test Producer")
+    pdf.docinfo["/CreationDate"] = pikepdf.String("D:20240101120000+08'00'")
+    pdf.docinfo["/ModDate"]      = pikepdf.String("D:20240601090000Z")
+    pdf.save(str(path))
+
+
+def _build_outline_pdf(path: Path) -> None:
+    """PDF with a two-level bookmark tree (Chapter 1, Chapter 2 > Section 2.1/2.2)."""
+    pdf = pikepdf.new()
+    for i in range(4):
+        _make_page(pdf, f"Chapter {i + 1}")
+
+    from pikepdf.models.outlines import Outline as PikeOutline, OutlineItem as PikeItem
+
+    with pdf.open_outline() as outline:
+        ch1 = PikeItem("Chapter 1", 0)
+        ch2 = PikeItem("Chapter 2", 1)
+        s21 = PikeItem("Section 2.1", 2)
+        s22 = PikeItem("Section 2.2", 3)
+        ch2.children.append(s21)
+        ch2.children.append(s22)
+        outline.root.append(ch1)
+        outline.root.append(ch2)
+
+    pdf.save(str(path))
+
+
 def _build_corrupted(path: Path) -> None:
     """Write a valid PDF then corrupt the trailer slightly — pikepdf/pdfium can usually repair it."""
     pdf = pikepdf.new()
@@ -125,6 +161,8 @@ def build_fixtures() -> None:
         "rotated.pdf": _build_rotated,
         "mixed.pdf": _build_mixed,
         "corrupted.pdf": _build_corrupted,
+        "metadata.pdf": _build_metadata_pdf,
+        "outline.pdf": _build_outline_pdf,
     }
 
     for filename, builder in builders.items():
@@ -165,3 +203,13 @@ def mixed_pdf(build_fixtures) -> Path:
 @pytest.fixture(scope="session")
 def corrupted_pdf(build_fixtures) -> Path:
     return FIXTURES_DIR / "corrupted.pdf"
+
+
+@pytest.fixture(scope="session")
+def metadata_pdf(build_fixtures) -> Path:
+    return FIXTURES_DIR / "metadata.pdf"
+
+
+@pytest.fixture(scope="session")
+def outline_pdf(build_fixtures) -> Path:
+    return FIXTURES_DIR / "outline.pdf"

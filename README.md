@@ -140,6 +140,16 @@ with sopdf.open("document.pdf") as doc:
     # --- Rotate ---
     doc[0].rotation = 90
 
+    # --- Metadata ---
+    print(doc.metadata.title)                  # read
+    doc.metadata.title = "Updated Title"       # write
+    print(doc.metadata.creation_datetime)      # parsed Python datetime
+
+    # --- Outline (table of contents) ---
+    for item in doc.outline.items:
+        print(f"[p{item.page + 1}] {item.title}")
+    flat = doc.outline.to_list()               # PyMuPDF-compatible flat list
+
 # --- Encrypted PDFs ---
 with sopdf.open("protected.pdf", password="hunter2") as doc:
     doc.save("unlocked.pdf")                      # encryption stripped on save
@@ -173,6 +183,8 @@ with sopdf.open("corrupted.pdf") as doc:
 | Rotate pages | [08_rotate](examples/08_rotate) |
 | Open & save encrypted PDFs | [09_decrypt](examples/09_decrypt) |
 | Auto-repair corrupted PDFs | [10_repair](examples/10_repair) |
+| Read & write document metadata | [11_metadata](examples/11_metadata) |
+| Read document outline (TOC) | [12_outline](examples/12_outline) |
 
 ---
 
