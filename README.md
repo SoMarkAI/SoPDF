@@ -22,7 +22,7 @@ English | [中文](README_CN.md)
 
 **1. 🚀 High Performance**
 
-With parallel processing and other optimizations, SoPDF significantly outperforms alternatives: rendering up to **1.56x faster**, plain text extraction **2.7x faster**, and full-text search **3x faster** — while maintaining **99% word-level accuracy consistency** with PyMuPDF. See the [Performance Benchmark](#performance-benchmark) section, or run it yourself.
+With parallel processing and other optimizations, SoPDF significantly outperforms alternatives: rendering up to **2.78x faster**, plain text extraction **2.7x faster**, and full-text search **3x faster** — while maintaining **99% word-level accuracy consistency** with PyMuPDF. See the [Performance Benchmark](#performance-benchmark) section, or run it yourself.
 
 **2. ✨ Feature-Rich**
 
@@ -50,13 +50,13 @@ In PDF processing, feature-rich + open source often comes with a license unfrien
 | Scenario | SoPDF | PyMuPDF | Speedup |
 | --- | --- | --- | --- |
 | Open document | 0.1 ms | 0.2 ms | **1.39× faster** |
-| Render 1 page @ 72 DPI | 6.6 ms | 9.1 ms | **1.38× faster** |
-| Render 1 page @ 150 DPI | 20.0 ms | 30.3 ms | **1.51× faster** |
-| Render 1 page @ 300 DPI | 64.6 ms | 101.1 ms | **1.56× faster** |
-| 50 pages sequential @ 150 DPI | 966.9 ms | 1470.3 ms | **1.52× faster** |
-| 50 pages parallel @ 150 DPI | 410.7 ms | 447.2 ms | **1.09× faster** |
+| Render 1 page @ 72 DPI | 4.1 ms | 9.0 ms | **2.20× faster** |
+| Render 1 page @ 150 DPI | 11.7 ms | 30.2 ms | **2.58× faster** |
+| Render 1 page @ 300 DPI | 34.2 ms | 95.2 ms | **2.78× faster** |
+| 50 pages sequential @ 150 DPI | 543 ms | 1468 ms | **2.70× faster** |
+| 50 pages parallel @ 150 DPI | 418 ms | 446 ms | **1.07× faster** |
 
-SoPDF wins at every DPI — and the margin widens at higher resolutions. In parallel mode, SoPDF achieves a genuine **2.35× speedup** over its own sequential baseline. PyMuPDF's thread-parallel path, on the other hand, actually *regresses* to 1548.9 ms (slower than sequential) because MuPDF serialises concurrent renders behind a global lock.
+SoPDF wins at every DPI — and the margin widens at higher resolutions. In parallel mode, SoPDF achieves a **1.30× speedup** over its own sequential baseline (the gap narrows because sequential rendering is now much faster). PyMuPDF's thread-parallel path, on the other hand, actually *regresses* to 1510 ms (slower than sequential) because MuPDF serialises concurrent renders behind a global lock.
 
 ### Text Extraction vs PyMuPDF
 
@@ -96,6 +96,8 @@ zero manual sync required.
 Files are opened with **lazy loading / mmap** — a 500 MB PDF opens in
 milliseconds and only the pages you actually access are loaded.
 
+For image encoding, SoPDF uses **OpenCV** (`opencv-python`) rather than Pillow. OpenCV's zero-copy NumPy bridge with pypdfium2 delivers **1.6×–1.9× faster** encoding than the Pillow path — see [docs/en/RuntimeDependencyCompare.md](docs/en/RuntimeDependencyCompare.md) for the full analysis and benchmark breakdown.
+
 ---
 
 ## Quick Start
@@ -104,7 +106,7 @@ milliseconds and only the pages you actually access are loaded.
 pip install sopdf
 ```
 
-Requires Python 3.10+. The two native dependencies (`pypdfium2`, `pikepdf`) ship pre-built wheels for macOS, Linux, and Windows — no compiler needed.
+Requires Python 3.10+. All native dependencies (`pypdfium2`, `pikepdf`, `opencv-python`) ship pre-built wheels for macOS, Linux, and Windows — no compiler needed.
 
 ```python
 import sopdf

@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
     "pypdfium2>=4.0",
     "pikepdf>=8.0",
-    "Pillow>=9.0",
+    "opencv-python>=4.0",
 ]
 
 [project.optional-dependencies]

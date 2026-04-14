@@ -80,24 +80,28 @@ def _render_one(args: tuple) -> bytes:
     """
     import pypdfium2 as pdfium
 
+    import cv2
+
     source, page_index, dpi, fmt, alpha = args
     pdf = pdfium.PdfDocument(source)
 
     try:
         page = pdf[page_index]
         scale = dpi / 72.0
-        bitmap = page.render(scale=scale)
-        pil_image = bitmap.to_pil()
-        buf = io.BytesIO()
         fmt_upper = fmt.upper()
-        if fmt_upper == "JPEG":
-            pil_image = pil_image.convert("RGB")
-            pil_image.save(buf, format="JPEG")
+        if alpha:
+            bitmap = page.render(scale=scale, maybe_alpha=True)
+            arr = bitmap.to_numpy()  # (H, W, 4) BGRA
+            _, encoded = cv2.imencode('.png', arr)
         else:
-            if not alpha:
-                pil_image = pil_image.convert("RGB")
-            pil_image.save(buf, format="PNG")
-        return buf.getvalue()
+            bitmap = page.render(
+                scale=scale,
+                force_bitmap_format=pdfium.raw.FPDFBitmap_BGR,
+            )
+            arr = bitmap.to_numpy()  # (H, W, 3) BGR
+            ext = '.jpg' if fmt_upper == 'JPEG' else '.png'
+            _, encoded = cv2.imencode(ext, arr)
+        return bytes(encoded)
     finally:
         pdf.close()
 
@@ -112,6 +116,8 @@ def _render_batch(args: tuple) -> list[bytes]:
     """
     import pypdfium2 as pdfium
 
+    import cv2
+
     source, page_indices, dpi, fmt, alpha = args
     pdf = pdfium.PdfDocument(source)
 
@@ -121,17 +127,19 @@ def _render_batch(args: tuple) -> list[bytes]:
         fmt_upper = fmt.upper()
         for idx in page_indices:
             page = pdf[idx]
-            bitmap = page.render(scale=scale)
-            pil_image = bitmap.to_pil()
-            buf = io.BytesIO()
-            if fmt_upper == "JPEG":
-                pil_image = pil_image.convert("RGB")
-                pil_image.save(buf, format="JPEG")
+            if alpha:
+                bitmap = page.render(scale=scale, maybe_alpha=True)
+                arr = bitmap.to_numpy()  # (H, W, 4) BGRA
+                _, encoded = cv2.imencode('.png', arr)
             else:
-                if not alpha:
-                    pil_image = pil_image.convert("RGB")
-                pil_image.save(buf, format="PNG")
-            results.append(buf.getvalue())
+                bitmap = page.render(
+                    scale=scale,
+                    force_bitmap_format=pdfium.raw.FPDFBitmap_BGR,
+                )
+                arr = bitmap.to_numpy()  # (H, W, 3) BGR
+                ext = '.jpg' if fmt_upper == 'JPEG' else '.png'
+                _, encoded = cv2.imencode(ext, arr)
+            results.append(bytes(encoded))
     finally:
         pdf.close()
     return results

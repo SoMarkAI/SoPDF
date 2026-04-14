@@ -4,7 +4,6 @@ sopdf.Page — proxy to a single PDF page via the dual-engine backend.
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
@@ -105,24 +104,31 @@ class Page:
             Encoded image data.
         """
         from ._utils import ensure_synced
+        import cv2
+        import pypdfium2 as pdfium
 
         ensure_synced(self._doc)
 
         scale = dpi / 72.0
         pdfium_page = self._doc._pdfium_doc[self._index]
-        bitmap = pdfium_page.render(scale=scale)  # pypdfium2 >= 4.0
-        pil_image = bitmap.to_pil()
-
-        buf = io.BytesIO()
         fmt = format.upper()
-        if fmt == "JPEG":
-            pil_image = pil_image.convert("RGB")
-            pil_image.save(buf, format="JPEG")
+
+        if alpha:
+            # maybe_alpha=True → BGRA (real alpha channel when page is transparent)
+            bitmap = pdfium_page.render(scale=scale, maybe_alpha=True)
+            arr = bitmap.to_numpy()  # (H, W, 4) BGRA
+            _, encoded = cv2.imencode('.png', arr)
         else:
-            if not alpha:
-                pil_image = pil_image.convert("RGB")
-            pil_image.save(buf, format="PNG")
-        return buf.getvalue()
+            # FPDFBitmap_BGR → contiguous (H, W, 3) BGR, no padding byte
+            bitmap = pdfium_page.render(
+                scale=scale,
+                force_bitmap_format=pdfium.raw.FPDFBitmap_BGR,
+            )
+            arr = bitmap.to_numpy()  # (H, W, 3) BGR
+            ext = '.jpg' if fmt == 'JPEG' else '.png'
+            _, encoded = cv2.imencode(ext, arr)
+
+        return bytes(encoded)
 
     def render_to_file(
         self,
