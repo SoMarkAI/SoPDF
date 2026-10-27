@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
+    import numpy
+
     from ._document import Document
 
 from ._exceptions import PageError
@@ -103,32 +105,50 @@ class Page:
         bytes
             Encoded image data.
         """
-        from ._utils import ensure_synced
         import cv2
+
+        arr = self.render_array(dpi=dpi, alpha=alpha)
+        ext = '.jpg' if format.upper() == 'JPEG' and not alpha else '.png'
+        _, encoded = cv2.imencode(ext, arr)
+        return bytes(encoded)
+
+    def render_array(self, *, dpi: int = 72, alpha: bool = False) -> "numpy.ndarray":
+        """Render this page to a pixel array without encoding it.
+
+        Parameters
+        ----------
+        dpi:
+            Resolution in dots per inch. Default is 72.
+        alpha:
+            Include an alpha channel.
+
+        Returns
+        -------
+        numpy.ndarray
+            ``uint8`` array of shape ``(H, W, 3)`` in BGR order, or
+            ``(H, W, 4)`` BGRA when *alpha* is true. These are the pixels
+            :meth:`render` encodes, in OpenCV's channel order. The array owns
+            its memory, so it stays valid after the page or document closes.
+        """
+        from ._utils import ensure_synced
         import pypdfium2 as pdfium
 
         ensure_synced(self._doc)
 
         scale = dpi / 72.0
         pdfium_page = self._doc._pdfium_doc[self._index]
-        fmt = format.upper()
 
         if alpha:
             # maybe_alpha=True → BGRA (real alpha channel when page is transparent)
             bitmap = pdfium_page.render(scale=scale, maybe_alpha=True)
-            arr = bitmap.to_numpy()  # (H, W, 4) BGRA
-            _, encoded = cv2.imencode('.png', arr)
         else:
             # FPDFBitmap_BGR → contiguous (H, W, 3) BGR, no padding byte
             bitmap = pdfium_page.render(
                 scale=scale,
                 force_bitmap_format=pdfium.raw.FPDFBitmap_BGR,
             )
-            arr = bitmap.to_numpy()  # (H, W, 3) BGR
-            ext = '.jpg' if fmt == 'JPEG' else '.png'
-            _, encoded = cv2.imencode(ext, arr)
-
-        return bytes(encoded)
+        # to_numpy() views PDFium's buffer, which is freed with the bitmap.
+        return bitmap.to_numpy().copy()
 
     def render_to_file(
         self,

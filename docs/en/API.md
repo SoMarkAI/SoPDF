@@ -580,6 +580,38 @@ png_alpha  = page.render(dpi=72, alpha=True)
 
 ---
 
+#### `page.render_array(*, dpi, alpha)`
+
+```python
+page.render_array(
+    *,
+    dpi: int = 72,
+    alpha: bool = False,
+) -> numpy.ndarray
+```
+
+Renders the page to a pixel array without encoding it. Use this when the next step works on pixels (OpenCV, a model's preprocessing), which saves the encode in `render()` and the decode the caller would otherwise run.
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dpi` | `int` | `72` | Rendering resolution in dots per inch. |
+| `alpha` | `bool` | `False` | Whether to include an alpha (transparency) channel. |
+
+**Returns**
+
+`numpy.ndarray` — `uint8` array of shape `(H, W, 3)` in BGR order, or `(H, W, 4)` BGRA when `alpha=True`. These are the same pixels `render()` encodes, in OpenCV's channel order. The array owns its memory and stays valid after the document is closed.
+
+**Examples**
+
+```python
+bgr  = page.render_array(dpi=150)
+bgra = page.render_array(dpi=150, alpha=True)
+```
+
+---
+
 #### `page.render_to_file(path, *, dpi, format, alpha)`
 
 ```python

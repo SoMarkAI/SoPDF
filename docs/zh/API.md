@@ -580,6 +580,38 @@ png_alpha  = page.render(dpi=72, alpha=True)
 
 ---
 
+#### `page.render_array(*, dpi, alpha)`
+
+```python
+page.render_array(
+    *,
+    dpi: int = 72,
+    alpha: bool = False,
+) -> numpy.ndarray
+```
+
+将页面渲染为像素数组，不进行编码。后续直接处理像素时（OpenCV、模型预处理）使用，可省去 `render()` 的编码以及调用方随后的解码。
+
+**参数**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `dpi` | `int` | `72` | 渲染分辨率（每英寸点数）。 |
+| `alpha` | `bool` | `False` | 是否包含透明通道（Alpha）。 |
+
+**返回值**
+
+`numpy.ndarray` — `uint8` 数组，形状为 `(H, W, 3)`（BGR 顺序）；`alpha=True` 时为 `(H, W, 4)`（BGRA）。与 `render()` 编码前的像素相同，采用 OpenCV 的通道顺序。数组持有自身内存，文档关闭后仍然有效。
+
+**示例**
+
+```python
+bgr  = page.render_array(dpi=150)
+bgra = page.render_array(dpi=150, alpha=True)
+```
+
+---
+
 #### `page.render_to_file(path, *, dpi, format, alpha)`
 
 ```python

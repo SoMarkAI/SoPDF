@@ -117,6 +117,7 @@ with sopdf.open("document.pdf") as doc:
 
     # --- Render ---
     img_bytes = doc[0].render(dpi=150)            # PNG bytes
+    pixels = doc[0].render_array(dpi=150)         # BGR numpy array, no encode
     doc[0].render_to_file("page0.png", dpi=300)   # write to disk
 
     # parallel rendering across all pages

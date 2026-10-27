@@ -130,6 +130,7 @@ with sopdf.open("document.pdf") as doc:
 
     # --- 渲染 ---
     img_bytes = doc[0].render(dpi=150)            # PNG 字节
+    pixels = doc[0].render_array(dpi=150)         # BGR numpy 数组，不编码
     doc[0].render_to_file("page0.png", dpi=300)   # 写入磁盘
 
     # 并行渲染所有页面
